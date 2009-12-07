@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceCategory android:title="@string/preferences_title">                        
+ <EditTextPreference
+                android:key="ip_preference"
+                android:title="@string/title_default_server_ip"
+                android:summary="@string/summary_default_server_ip"
+                android:dialogTitle="@string/preferences_title" />
+ <EditTextPreference
+                android:key="port_preference"
+                android:title="@string/title_default_server_port"
+                android:summary="@string/summary_default_server_port"
+                android:dialogTitle="@string/preferences_title" />
+
+</PreferenceCategory>
+</PreferenceScreen>

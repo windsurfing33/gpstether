@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" android:orientation="vertical" android:gravity="center_horizontal">
+    <TableRow android:id="@+id/TableRow01" android:layout_width="wrap_content" android:layout_height="wrap_content">
+    <Button android:id="@+id/startservice"
+       android:text="@string/startserv"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content" />
+    <Button android:id="@+id/stopservice"
+       android:text="@string/stopserv"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content" />
+    </TableRow>
+<!--     <Button android:id="@+id/bindservice"
+       android:text="@string/bindserv"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content" />
+    <Button android:id="@+id/unbindservice"
+       android:text="@string/unbindserv"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content" />
+     -->
+    <TextView android:id="@+id/gpsStatus"
+				android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/gpsstatus" />
+    <TextView android:id="@+id/servicestatus"
+				android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/servicestatus"/>
+                
+
+</LinearLayout>
+
