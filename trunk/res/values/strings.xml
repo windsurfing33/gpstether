@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GPSTether</string>
+    <string name="eula_title">EULA</string>
+    <string name="eula_accept">Accept</string>
+    <string name="eula_refuse">Refuse</string>
+    
+	<string name="startserv">Start service</string>
+    <string name="stopserv">Stop service</string>
+    <string name="invokeserv">Get counter</string>
+    <string name="bindserv">Bind service</string>
+    <string name="unbindserv">Unbind service</string>
+    <string name="default_result">N/A</string>
+    <string name="servicestatus">Service status: N/A</string>    
+    <string name="gpsstatus">GPS status: N/A</string>
+
+    <string name="service_stopped">GPSTether service stopped!</string>
+    <string name="service_started">GPSTether service running!</string>
+
+    <string name="preferences_title">GPSTether Service Preferences</string>
+
+    <string name="default_server_ip">127.0.0.1</string>    
+    <string name="default_server_port">2947</string>
+
+    <string name="title_default_server_ip">Server IP</string>    
+    <string name="title_default_server_port">Server Port</string>
+
+    <string name="summary_default_server_ip">Setup the GPS info server ip</string>
+    <string name="summary_default_server_port">Setup the GPS info server port</string>
+</resources>
