@@ -1,18 +1,18 @@
 /*
- *    GPSTether 
+ *    GPSTether
  *    Copyright (C) 2009  Christoph Derigo <www.c99austria.com>
- *	  
- *    
+ *
+ *
  *    GPSTether is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
  *    the Free Software Foundation, either version 3 of the License, or
  *    (at your option) any later version.
- *    
+ *
  *    GPSTether is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
- *    
+ *
  *    You should have received a copy of the GNU General Public License
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -32,7 +32,7 @@ import android.util.Log;
 public class EchoThread extends Thread {
 
 	private CallbackThread mCB = null;
-	
+
 	private Socket mClientSocket = null;
 	private String mDeviceName = "F,Android GPS Device";
 
@@ -40,6 +40,7 @@ public class EchoThread extends Thread {
 
 	// private float mTimeError = 0.005f;
 	private boolean mWatcherMode = false;
+	private boolean mRawMode = false;
 
 	private boolean mXSend = false;
 
@@ -59,7 +60,7 @@ public class EchoThread extends Thread {
 		String reply = Constants.REPLY_START;
 
 		for (int idx = 0; idx < str.length(); idx++) {
-			final char c = str.charAt(idx);
+			final char c = str.toLowerCase().charAt(idx);
 			switch (c) {
 			case 'p':
 				reply += this.mCB.getPosition();
@@ -68,7 +69,7 @@ public class EchoThread extends Thread {
 				reply += this.mCB.getNavInfo();
 				break;
 			case 'd':
-				reply += ":d";
+				reply += this.mCB.getUTCTime();
 				break;
 			// 1 Meter per Second = 1.9438444924406 Knots
 			case 'v':
@@ -85,6 +86,9 @@ public class EchoThread extends Thread {
 					}
 				}
 				reply += this.mDeviceName;
+				break;
+			case 'i':
+				reply += ",I=" + this.mDeviceName.substring(2);
 				break;
 			case 'u':
 				reply += this.mCB.getRateOfClimb();// rate of climb
@@ -131,6 +135,36 @@ public class EchoThread extends Thread {
 			case 'q':
 				reply += this.mCB.printOutSatellites();
 				break;
+			case 'r':
+				if (idx + 1 < str.length()) {
+					switch (str.charAt(idx + 2)) {
+					case '0':
+					case '-':
+						mRawMode = false;
+						reply += ",R=0";
+						break;
+					case '1':
+					case '2':
+					case '+':
+						if (!mXSend) {
+							reply += mCB.sendXMode(true) + Constants.COMMAND_END + Constants.REPLY_START;
+							mXSend = true;
+						}
+						mRawMode = true;
+						reply += ",R=1";
+						break;
+					default:
+						return null;
+					}
+					idx++;
+				} else {
+					if (mRawMode)
+						reply += ",R=0";
+					else
+						reply += ",R=1";
+					mRawMode = !mRawMode;
+				}
+				break;
 			default:
 				return null;
 			}
@@ -174,28 +208,33 @@ public class EchoThread extends Thread {
 				while (!this.mDone && this.mClientSocket.isBound()) {
 					str = null;
 					try { // wait for timeout!
-						if (!this.mWatcherMode || in.ready()) {
+						if ((!this.mWatcherMode && !this.mRawMode) || in.ready()) {
 							str = in.readLine();
 						}
 					} catch (final SocketTimeoutException e) { // catch only
 																// read
 						// timeouts here!!
 						// Log.d(this.toString(),"input readline timeout");
-						if (!this.mWatcherMode) {
+						if (!this.mWatcherMode && !this.mRawMode) {
 							continue;
 						}
 						str = null;
 					} catch (final SocketException e) {
 						break;
 					}
-					// Log.v("gpsd","gpsd got : "+str);
+					if (str != null)
+						Log.v("gpsd","gpsd got : "+str);
 					if (str == null) {
 						// String reply_str = printOutSatellites();
 						// Log.d("gspd","Watching Mode ==> Reply String: \""+reply_str+"\"");
-						final String reply_str = Constants.REPLY_START
+						String reply_str = new String();
+						if (this.mWatcherMode)
+							reply_str += Constants.REPLY_START
 								+ this.mCB.getNavInfo();
+						if (this.mRawMode)
+							reply_str += this.mCB.getRawInfo();
 						// Log.d("gspd","Watching Mode ==> Reply String: \""+reply_str+"\"");
-						Thread.sleep(500);
+						Thread.sleep(1000);
 						try {
 							out.append(reply_str + Constants.COMMAND_END);
 							out.flush();
