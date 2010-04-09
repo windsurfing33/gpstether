@@ -181,7 +181,8 @@ public class EchoThread extends Thread {
 		try {
 			this.join();
 		} catch (final InterruptedException ex) {
-			// Ignore
+			Log.e(this.toString(), "requestExitAndWait() InterruptedException:");
+			ex.printStackTrace();
 		}
 	}
 
@@ -197,7 +198,7 @@ public class EchoThread extends Thread {
 			Log.e(this.toString(), "No Client Socket found!");
 			return;
 		}
-		while (!this.mDone) {
+		while (!this.mDone && !fatal) {
 			try { // catch all fatal exceptions!
 				this.mClientSocket.setSoTimeout(Constants.SOCKET_TIMEOUT);
 
@@ -280,11 +281,9 @@ public class EchoThread extends Thread {
 				fatal = true;
 			}
 			if (fatal) {
-				Log.e("gspd",
-						"Fatal Error! I Join the Thread now because of Error!");
-				break;
+				Log.e("gspd","Fatal Error! I exit the Thread now because of this error!");
 			}
 		}
-		Log.d(this.toString(), "Client thread exits!");
+		Log.d(this.toString(), "Client thread exits! " + (fatal ? "with fatal error" : " successfully"));
 	}
 }

@@ -1,5 +1,5 @@
 package com.gpstether;
-	 
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -21,66 +21,71 @@ import com.gpstether.service.ITetherServiceCallback;
 public final class ServiceManager {
 	protected static String className = "com.gpstether.service.TetherService";
 	protected static String packageNameSpace = "com.gpstether";
-	
+
 	protected static final int GPS_MSG = 0;
 	private tetherServiceConnection conn;
 	private boolean started = false;
-    private Context mCtx;
-    
+	private Context mCtx;
+
 	private ITetherService tetherService;
 	/**
-     * This implementation is used to receive callbacks from the remote
-     * service.
-     */
-    private ITetherServiceCallback mCallback = new ITetherServiceCallback.Stub() {
-        /**
-         * This is called by the remote service regularly to tell us about
-         * new values.  Note that IPC calls are dispatched through a thread
-         * pool running in each process, so the code executing here will
-         * NOT be running in our main thread like most other things -- so,
-         * to update the UI, we need to use a Handler to hop over there.
-         */
-        public void gpsChanged(String str) {
-            mHandler.sendMessage(mHandler.obtainMessage(GPS_MSG, str));
-        }
-    };
+	 * This implementation is used to receive callbacks from the remote service.
+	 */
+	private ITetherServiceCallback mCallback = new ITetherServiceCallback.Stub() {
+		/**
+		 * This is called by the remote service regularly to tell us about new
+		 * values. Note that IPC calls are dispatched through a thread pool
+		 * running in each process, so the code executing here will NOT be
+		 * running in our main thread like most other things -- so, to update
+		 * the UI, we need to use a Handler to hop over there.
+		 */
+		public void gpsChanged(String str) {
+			mHandler.sendMessage(mHandler.obtainMessage(GPS_MSG, str));
+		}
+	};
 
-	
-	public ServiceManager(Context ctx){
+	public ServiceManager(Context ctx) {
 		this.mCtx = ctx;
-	//	if(!bindActToService()) Log.e(this.toString(),"Error: cannot bind service!");
+		// if(!bindActToService())
+		// Log.e(this.toString(),"Error: cannot bind service!");
 	}
-	
-	protected void finalize ()  {
+
+	protected void finalize() {
 		unbindActFromService();
-    }
-	
+	}
+
 	private boolean unbindActFromService() {
-		if((mCtx != null) && (this.conn != null)) {
+		if ((mCtx != null) && (this.conn != null)) {
 			mCtx.unbindService(this.conn);
 			this.conn = null;
-			Log.d(ServiceManager.this.toString(), "unbindService()");
+			Log.d(ServiceManager.this.toString(), "unbindActFromService()");
 			return true;
-		} 
+		}
 		return false;
 	}
 
 	class tetherServiceConnection implements ServiceConnection {
 		public UpdateStatus mStatusIf = null;
+
 		@Override
-		public void onServiceConnected( ComponentName className, IBinder boundService) {
-			ServiceManager.this.tetherService = ITetherService.Stub.asInterface(boundService);
-    	    try {
-				ServiceManager.this.tetherService.registerCallback(ServiceManager.this.mCallback);
+		public void onServiceConnected(ComponentName className,
+				IBinder boundService) {
+			ServiceManager.this.tetherService = ITetherService.Stub
+					.asInterface(boundService);
+			try {
+				ServiceManager.this.tetherService
+						.registerCallback(ServiceManager.this.mCallback);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			}
 			Log.d(this.toString(), "onServiceConnected");
 		}
+
 		@Override
 		public void onServiceDisconnected(ComponentName className) {
 			try {
-				ServiceManager.this.tetherService.unregisterCallback(ServiceManager.this.mCallback);
+				ServiceManager.this.tetherService
+						.unregisterCallback(ServiceManager.this.mCallback);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			}
@@ -88,6 +93,7 @@ public final class ServiceManager {
 			Log.d(this.toString(), "onServiceDisconnected");
 			ServiceManager.this.updateServiceStatus(this.mStatusIf);
 		}
+
 		public void SetUpdateStatusIf(UpdateStatus statusIf) {
 			this.mStatusIf = statusIf;
 			Log.d(this.toString(), "SetUpdateStatusIf");
@@ -99,31 +105,34 @@ public final class ServiceManager {
 	 */
 	public interface UpdateStatus {
 		public void updateGPSStatus(String status);
+
 		public void updateServiceStatus(String status);
 	}
 
-	private Intent createServiceIntent()
-	{
+	private Intent createServiceIntent() {
 		Intent i = new Intent();
 		i.setClassName(packageNameSpace, className);
 		return i;
 	}
-	
+
 	public boolean StartService() {
-		if(!this.started) {
+		if (!this.started) {
 			// first start the service!
 			mCtx.startService(createServiceIntent());
 			Log.d(ServiceManager.this.toString(), "startService()");
 			this.started = true;
 			this.updateServiceStatus((UpdateStatus) mCtx);
 		}
-		if(!bindActToService()){
-			Toast.makeText(mCtx, "Service could not be bound!", Toast.LENGTH_SHORT).show();
+		if (!bindActToService()) {
+			Toast.makeText(mCtx, "Service could not be bound!",
+					Toast.LENGTH_SHORT).show();
 		}
-		if( this.conn != null && this.started) {
-			Toast.makeText(mCtx, "Service started and bound !", Toast.LENGTH_SHORT).show();
+		if (this.conn != null && this.started) {
+			Toast.makeText(mCtx, "Service started and bound !",
+					Toast.LENGTH_SHORT).show();
 		} else {
-			Toast.makeText(mCtx, "Service is not started and not bound!", Toast.LENGTH_SHORT).show();
+			Toast.makeText(mCtx, "Service is not started and not bound!",
+					Toast.LENGTH_SHORT).show();
 		}
 		return this.started;
 	}
@@ -132,11 +141,12 @@ public final class ServiceManager {
 		if (this.conn == null) {
 			this.conn = new tetherServiceConnection();
 			this.conn.SetUpdateStatusIf((UpdateStatus) mCtx);
-			
-			mCtx.bindService(createServiceIntent(), this.conn, Context.BIND_AUTO_CREATE);
-			
+
+			mCtx.bindService(createServiceIntent(), this.conn,
+					Context.BIND_AUTO_CREATE);
+
 			Log.d(ServiceManager.this.toString(), "bindService()");
-			
+
 			this.updateServiceStatus((UpdateStatus) mCtx);
 			return true;
 		}
@@ -149,59 +159,69 @@ public final class ServiceManager {
 
 		// now stop the service!
 		if (!this.started) {
-			Toast.makeText(mCtx, "Service was not started", Toast.LENGTH_SHORT).show();
+			Toast.makeText(mCtx, "Service was not started", Toast.LENGTH_SHORT)
+					.show();
 		} else {
 			mCtx.stopService(createServiceIntent());
 			Log.d(ServiceManager.this.toString(), "stopService()");
 			this.started = false;
 		}
-		if(this.conn == null && !this.started) {
-			Toast.makeText(mCtx, "Service stopped and unbound!", Toast.LENGTH_SHORT).show();
-		} else if(this.conn == null) {
-			Toast.makeText(mCtx, "Service unbound but not stopped!", Toast.LENGTH_SHORT).show();
-		} else if(!this.started) {
-			Toast.makeText(mCtx, "Service stopped but not unbound!", Toast.LENGTH_SHORT).show();
+		Toast notification = null;
+		if (this.conn == null && !this.started) {
+			notification = Toast.makeText(mCtx,R.string.service_stopped_and_unbound,Toast.LENGTH_LONG);
+		} else if (this.conn == null) {
+			notification = Toast.makeText(mCtx,R.string.service_unbound_stop_pending, Toast.LENGTH_LONG);
+		} else if (!this.started) {
+			notification = Toast.makeText(mCtx,R.string.service_stopped_unbound_pending, Toast.LENGTH_LONG);
 		} else {
-			Toast.makeText(mCtx, "Service not stopped and not unbound!", Toast.LENGTH_SHORT).show();
+			notification = Toast.makeText(mCtx,R.string.service_stop_and_unbound_pending, Toast.LENGTH_LONG);
 		}
+		notification.show();
 		this.updateServiceStatus((UpdateStatus) mCtx);
 	}
 
-	private void updateServiceStatus( UpdateStatus act) {
-		if(act == null){
+	private void updateServiceStatus(UpdateStatus act) {
+		if (act == null) {
 			Log.e(this.toString(), "Error: update status interface is null");
 			return;
 		}
 		final String bindStatus = this.conn == null ? "unbound" : "bound";
 		final String startStatus = this.started ? "started" : "not started";
-		final String statusText = "Service status: " + bindStatus + "," + startStatus;
+		final String statusText = "Service status: " + bindStatus + ","
+				+ startStatus;
 		act.updateServiceStatus(statusText);
 	};
-	
+
 	private Handler mHandler = new Handler() {
-	        public void handleMessage(Message msg) {
-	            switch (msg.what) {
-	                case GPS_MSG:
-	                	String msg_data = (String)msg.obj;
-	                	((UpdateStatus) mCtx).updateGPSStatus(msg_data);
-	                    break;
-	                default:
-	                    super.handleMessage(msg);
-	            }
-	        }
-     };
-     
-	 public static boolean findServiceInTaskList(Context act) {
-	        ActivityManager activityManager = (ActivityManager)act.getSystemService(Context.ACTIVITY_SERVICE);
-			List<ActivityManager.RunningServiceInfo> runningTasks = activityManager.getRunningServices(Integer.MAX_VALUE);
-			
-			for (Iterator<ActivityManager.RunningServiceInfo> iterator = runningTasks.iterator(); iterator.hasNext();) {
-				ActivityManager.RunningServiceInfo serviceInfo = (ActivityManager.RunningServiceInfo) iterator.next();
-				ComponentName serviceName = serviceInfo.service;
-				
-			//    Log.v(act.toString(),"Service class: " + (i++) + " : " + serviceName.getClassName());
-			    if(serviceName.getClassName().equals(className))  return true;
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case GPS_MSG:
+				String msg_data = (String) msg.obj;
+				((UpdateStatus) mCtx).updateGPSStatus(msg_data);
+				break;
+			default:
+				super.handleMessage(msg);
 			}
-			return false;
-	  }
+		}
+	};
+
+	public static boolean findServiceInTaskList(Context act) {
+		ActivityManager activityManager = (ActivityManager) act
+				.getSystemService(Context.ACTIVITY_SERVICE);
+		List<ActivityManager.RunningServiceInfo> runningTasks = activityManager
+				.getRunningServices(Integer.MAX_VALUE);
+
+		for (Iterator<ActivityManager.RunningServiceInfo> iterator = runningTasks
+				.iterator(); iterator.hasNext();) {
+			ActivityManager.RunningServiceInfo serviceInfo = (ActivityManager.RunningServiceInfo) iterator
+					.next();
+			ComponentName serviceName = serviceInfo.service;
+
+			// Log.v(act.toString(),"Service class: " + (i++) + " : " +
+			// serviceName.getClassName());
+			if (serviceName.getClassName().equals(className))
+				return true;
+		}
+		return false;
+	}
 }

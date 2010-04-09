@@ -57,7 +57,7 @@ public class TetherService extends Service {
 	    	   mLocMan = null;
 		       cb_thread.requestExitAndWait();
 	    	}
-	        Toast.makeText(TetherService.this, R.string.service_stopped, Toast.LENGTH_SHORT).show();
+	        Toast.makeText(TetherService.this, R.string.service_stopped, Toast.LENGTH_LONG).show();
 	    }
 	    /**
 	     * The IAdderService is defined through IDL

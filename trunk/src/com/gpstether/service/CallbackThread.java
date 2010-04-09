@@ -325,7 +325,7 @@ public class CallbackThread extends Thread implements LocationListener, GpsStatu
 				break;
 			}
 			Log.d(this.toString(), "Client got connected on Port: " + this.mServerPort);
-			final EchoThread thread = new EchoThread(clientSocket, this);
+			EchoThread thread = new EchoThread(clientSocket, this);
 			this.mThreadList.add(thread);
 			thread.start();
 		}
