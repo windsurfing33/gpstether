@@ -573,5 +573,11 @@ public class CallbackThread extends Thread implements LocationListener, GpsStatu
 
 		return ret;
 	}
+	/**
+	 * Returns the current altitude in the form "A=f";
+	 */
+	public String getAltitude() {
+		return (",A=" + this.mLocation.getAltitude());
+	}
 
 }
