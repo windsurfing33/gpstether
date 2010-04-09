@@ -165,6 +165,9 @@ public class EchoThread extends Thread {
 					mRawMode = !mRawMode;
 				}
 				break;
+			case 'a':
+				reply += this.mCB.getAltitude();
+				break;
 			default:
 				return null;
 			}
