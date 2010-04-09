@@ -19,6 +19,12 @@
 
     <string name="preferences_title">GPSTether Service Preferences</string>
 
+    <string name="service_unbound_stop_pending">Service unbound but not stopped!</string>
+    <string name="service_stopped_unbound_pending">Service stopped but not unbound!</string>
+    <string name="service_stop_and_unbound_pending">Service not stopped and not unbound!</string>
+    <string name="service_stopped_and_unbound">Service stopped and unbound!</string>
+ 
+
     <string name="default_server_ip">127.0.0.1</string>    
     <string name="default_server_port">2947</string>
 

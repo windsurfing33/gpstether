@@ -32,17 +32,20 @@ public class GPSTether extends Activity implements Eula.OnEulaAgreedTo, ServiceM
 
 	protected static final int CHECKSERVICE = 0;
 
-	private  TextView mServiceStatus;
-	private  TextView mGPSStatus;
+	private TextView mServiceStatus;
+	private TextView mGPSStatus;
 	
 	private static final int UPDATE_DELAY_MS = 1000;
 
-	void startPollingServiceUpdate() { 
-		final Handler handler = new Handler();
-		final Runnable updateCaller = new Runnable() {
+	private static final int CLOSE_MENU = 0;
+	private final Handler status_poll_handler = new Handler();
+	private Runnable status_poll_runnable = null;
+	
+	private void startPollingServiceUpdate() {
+		if(status_poll_runnable==null) status_poll_runnable = new Runnable() {
 			public void run() {
 				boolean is_running = ServiceManager.findServiceInTaskList(GPSTether.this);
-				//Log.i( this.toString(), "Service Polling:" +( is_running ? "is up and running" : "is not running!") );
+				Log.i( this.toString(), "Service Polling: " +( is_running ? "=> is up and running" : "=>is not running!") );
 
 				Button stopServiceButton = (Button) findViewById(R.id.stopservice );
 			    Button startServiceButton = (Button) findViewById(R.id.startservice );
@@ -50,11 +53,11 @@ public class GPSTether extends Activity implements Eula.OnEulaAgreedTo, ServiceM
 			    startServiceButton.setEnabled(!is_running);
 			    stopServiceButton.setEnabled(is_running);
 			    
-				handler.postDelayed( this, UPDATE_DELAY_MS );
+			    status_poll_handler.postDelayed( this, UPDATE_DELAY_MS );
 			}
 		};
-    	// kick it off first time!
-		handler.postDelayed( updateCaller, UPDATE_DELAY_MS );
+    	// kick off a status poll for the first time!
+		status_poll_handler.postDelayed( status_poll_runnable, UPDATE_DELAY_MS );
 	}
 	
 	/** Called when the activity is first created. */
@@ -71,9 +74,20 @@ public class GPSTether extends Activity implements Eula.OnEulaAgreedTo, ServiceM
 			this.onEulaAgreedTo();
 		}
 	}
+	
+	private void tryRemovePollingCallbacks()
+	{
+		if(status_poll_handler != null && status_poll_runnable !=null){
+			Log.d(this.toString(),"tryRemovePollingCallbacks() => remove callbacks gets called next!");
+			status_poll_handler.removeCallbacks(status_poll_runnable);
+		} else {
+			Log.d(this.toString(),"tryRemovePollingCallbacks() => nothing to remove!");
+		}
+	}
 	@Override
 	public void onPause() {
 		super.onPause();
+		tryRemovePollingCallbacks();
 		Log.i(this.toString(),"====>Pause");
 	}
 	
@@ -85,6 +99,8 @@ public class GPSTether extends Activity implements Eula.OnEulaAgreedTo, ServiceM
 
 	@Override
 	protected void onDestroy() {
+		Log.i(this.toString(),"====>Destroy");
+		tryRemovePollingCallbacks();
 		super.onDestroy();
 	}
 
@@ -123,7 +139,7 @@ public class GPSTether extends Activity implements Eula.OnEulaAgreedTo, ServiceM
 	public boolean onOptionsItemSelected(final MenuItem item) {
 		super.onOptionsItemSelected(item);
 		switch (item.getItemId()) {
-			case 0: this.finish();
+			case CLOSE_MENU: this.finish();
 		}
 		return false;
 	}
