@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="com.gpstether"
-      android:versionCode="1" android:versionName="1.0.2r5">
+      android:versionName="1.0.2r9" android:versionCode="3">
     <application android:icon="@drawable/icon" android:label="@string/app_name">
         <activity android:name=".GPSTether"
-                  android:label="@string/app_name">
+                  android:label="@string/app_name" 
+                  android:screenOrientation="portrait"
+                  android:multiprocess="false" 
+                  android:launchMode="singleInstance" >
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -12,13 +16,21 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-        <service android:name=".service.TetherService" android:exported="true" />
+        <service android:name=".service.TetherService" 
+        android:exported="true" 
+        android:label="GPS Tether Service" 
+        android:enabled="true"/>
     </application>
     <uses-sdk android:minSdkVersion="3" />
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS" />
+    
+    <uses-permission android:name="android.permission.INTERNET"/>
+        
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
     <uses-permission android:name="android.permission.READ_SETTINGS"/>
     <uses-permission android:name="android.permission.WRITE_SETTINGS" /> 
 </manifest> 

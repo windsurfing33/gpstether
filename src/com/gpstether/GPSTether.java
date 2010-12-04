@@ -28,69 +28,27 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-public class GPSTether extends Activity implements Eula.OnEulaAgreedTo, ServiceManager.UpdateStatus {
+public class GPSTether extends Activity implements Eula.OnEulaAgreedTo,
+		ServiceManager.UpdateStatus {
 
-	protected static final int CHECKSERVICE = 0;
-
-	private TextView mServiceStatus;
-	private TextView mGPSStatus;
+	protected static final int CHECKSERVICE 	= 0;
+	private   static final int CLOSE_MENU 		= 0;
 	
-	private static final int UPDATE_DELAY_MS = 1000;
+	private   static final int POLL_UPDATE_DELAY_MS 	= 1000;
 
-	private static final int CLOSE_MENU = 0;
+	private TextView mGPSStatus,mServiceStatus;
+	
+	private ServiceManager mServiceMan = null;
+	
 	private final Handler status_poll_handler = new Handler();
 	private Runnable status_poll_runnable = null;
-	
-	private void startPollingServiceUpdate() {
-		if(status_poll_runnable==null) status_poll_runnable = new Runnable() {
-			public void run() {
-				boolean is_running = ServiceManager.findServiceInTaskList(GPSTether.this);
-				Log.i( this.toString(), "Service Polling: " +( is_running ? "=> is up and running" : "=>is not running!") );
 
-				Button stopServiceButton = (Button) findViewById(R.id.stopservice );
-			    Button startServiceButton = (Button) findViewById(R.id.startservice );
-
-			    startServiceButton.setEnabled(!is_running);
-			    stopServiceButton.setEnabled(is_running);
-			    
-			    status_poll_handler.postDelayed( this, UPDATE_DELAY_MS );
-			}
-		};
-    	// kick off a status poll for the first time!
-		status_poll_handler.postDelayed( status_poll_runnable, UPDATE_DELAY_MS );
-	}
-	
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(final Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 	}
-	
-	@Override
-	public void onResume() {
-		super.onResume();
-		Log.i(this.toString(),"====>Resumed");
-		if (Eula.show(this)) {
-			this.onEulaAgreedTo();
-		}
-	}
-	
-	private void tryRemovePollingCallbacks()
-	{
-		if(status_poll_handler != null && status_poll_runnable !=null){
-			Log.d(this.toString(),"tryRemovePollingCallbacks() => remove callbacks gets called next!");
-			status_poll_handler.removeCallbacks(status_poll_runnable);
-		} else {
-			Log.d(this.toString(),"tryRemovePollingCallbacks() => nothing to remove!");
-		}
-	}
-	@Override
-	public void onPause() {
-		super.onPause();
-		tryRemovePollingCallbacks();
-		Log.i(this.toString(),"====>Pause");
-	}
-	
+
 	@Override
 	public boolean onCreateOptionsMenu(final Menu menu) {
 		menu.add("Close");
@@ -99,59 +57,119 @@ public class GPSTether extends Activity implements Eula.OnEulaAgreedTo, ServiceM
 
 	@Override
 	protected void onDestroy() {
-		Log.i(this.toString(),"====>Destroy");
+		Log.i(toString(), "====>Destroy");
 		tryRemovePollingCallbacks();
 		super.onDestroy();
 	}
 
+	private View.OnClickListener mOCL = new View.OnClickListener() {
+		public void onClick(final View v) {
+			switch(v.getId()){
+			case R.id.startservice:
+				mServiceMan.StartService(); break;
+			case R.id.stopservice:
+				mServiceMan.StopService();
+				mGPSStatus.setText( getString(R.string.gpsstatus) );break;
+			}
+		}
+	};
+	
 	@Override
 	public void onEulaAgreedTo() {
-		
-		final String gps_na_str = this.getString(R.string.gpsstatus);
 
-		// startup and init service manager		
-		final ServiceManager service_manager = new ServiceManager(this);
-		
+		//if(!(mServiceMan instanceof ServiceManager)) 
+			
+		mServiceMan = new ServiceManager(this);
 		setContentView(R.layout.main);
+
+		mServiceStatus = (TextView) findViewById(R.id.servicestatus);
+		mGPSStatus = (TextView) findViewById(R.id.gpsStatus);
+
 		
-	    mServiceStatus = (TextView) this.findViewById(R.id.servicestatus);
-	    mGPSStatus = (TextView) this.findViewById(R.id.gpsStatus);
+		Button startServiceButton = (Button) findViewById(R.id.startservice);
+		Button stopServiceButton = ((Button) findViewById(R.id.stopservice));
 		
-		Button startServiceButton = (Button) findViewById(R.id.startservice );
-		startServiceButton.setOnClickListener(new View.OnClickListener() {
-		    public void onClick(View view) {
-		    	service_manager.StartService();
-		    }
-		});
-		Button stopServiceButton = (Button) findViewById(R.id.stopservice );
-		stopServiceButton.setOnClickListener(new View.OnClickListener() {
-		    public void onClick(View view) {
-		    	service_manager.StopService();
-		    	mGPSStatus.setText(gps_na_str);
-	     	}
-		});
-	    startServiceButton.setEnabled(false);
-	    stopServiceButton.setEnabled(false);
+		startServiceButton.setOnClickListener(mOCL);
+		stopServiceButton.setOnClickListener(mOCL);
+		
+		startServiceButton.setEnabled(false);
+		stopServiceButton.setEnabled(false);
 
 		startPollingServiceUpdate();
-    }
+	}
+
 	@Override
 	public boolean onOptionsItemSelected(final MenuItem item) {
 		super.onOptionsItemSelected(item);
 		switch (item.getItemId()) {
-			case CLOSE_MENU: this.finish();
+		case CLOSE_MENU:
+			finish();
 		}
 		return false;
 	}
-	
+
 	@Override
-	public void updateGPSStatus(String status) {
-		if(status != null) mGPSStatus.setText(status);
+	public void onPause() {
+		super.onPause();
+		tryRemovePollingCallbacks();
+		Log.i(toString(), "====>Pause");
 	}
 
 	@Override
-	public void updateServiceStatus( String status) {
-		if(status != null) mServiceStatus.setText(status);
+	public void onResume() {
+		super.onResume();
+		Log.i(getClass().toString(), "====>Resumed");
+		if (Eula.show(this)) {
+			onEulaAgreedTo();
+		}
+	}
+
+	private void startPollingServiceUpdate() {
+		if (status_poll_runnable == null) {
+			status_poll_runnable = new Runnable() {
+				public void run() {
+					final boolean is_running = ServiceManager
+							.findServiceInTaskList(GPSTether.this);
+					Log.i(getClass().toString(),
+					"Service Polling: "+ (is_running ? "=> is up and running":"=>is not running!"));
+
+					final Button stopServiceButton =  (Button) findViewById(R.id.stopservice);
+					final Button startServiceButton = (Button) findViewById(R.id.startservice);
+
+					startServiceButton.setEnabled(!is_running);
+					stopServiceButton.setEnabled(is_running);
+
+					status_poll_handler.postDelayed(this,POLL_UPDATE_DELAY_MS);
+				}
+			};
+		}
+		// kick off a status poll for the first time!
+		status_poll_handler.postDelayed(status_poll_runnable,POLL_UPDATE_DELAY_MS);
+	}
+
+	private void tryRemovePollingCallbacks() {
+		if (status_poll_handler != null && status_poll_runnable != null) {
+			Log.d(getClass().toString(),
+				"tryRemovePollingCallbacks() => remove callbacks gets called next!");
+			status_poll_handler.removeCallbacks(status_poll_runnable);
+		} else {
+			Log.d(getClass().toString(),
+				"tryRemovePollingCallbacks() => nothing to remove!");
+		}
+	}
+
+	@Override
+	public void updateGPSStatus(final String status) {
+		if (status != null) {
+			mGPSStatus.setText(status);
+		}
+	}
+
+	@Override
+	public void updateServiceStatus(final String status) {
+		if (status != null) {
+			mServiceStatus.setText(status);
+		}
 	}
 
 }
