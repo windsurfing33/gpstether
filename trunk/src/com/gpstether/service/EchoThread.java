@@ -31,23 +31,19 @@ import android.util.Log;
 
 public class EchoThread extends Thread {
 
+	private String  mDeviceName = Constants.GPSD_DEVICE_NAME;
+	
 	private CallbackThread mCB = null;
-
 	private Socket mClientSocket = null;
-	private String mDeviceName = "F,Android GPS Device";
-
-	private boolean mDone = false;
-
-	// private float mTimeError = 0.005f;
-	private boolean mWatcherMode = false;
-	private boolean mRawMode = false;
-
-	private boolean mXSend = false;
-
+	
+	private boolean mDone 			= false;
+	private boolean mRawMode 		= false;
+	private boolean mWatcherMode 	= false;
+	private boolean mXSend 			= false;
+	
 	public EchoThread(final Socket s, final CallbackThread cb) {
 		super();
-		this.mCB = cb;
-		this.mClientSocket = s;
+		mCB = cb; mClientSocket = s;	
 	}
 
 	/*
@@ -62,181 +58,142 @@ public class EchoThread extends Thread {
 		for (int idx = 0; idx < str.length(); idx++) {
 			final char c = str.toLowerCase().charAt(idx);
 			switch (c) {
-			case 'p':
-				reply += this.mCB.getPosition();
-				break;
-			case 'o':
-				reply += this.mCB.getNavInfo();
-				break;
-			case 'd':
-				reply += this.mCB.getUTCTime();
-				break;
-			// 1 Meter per Second = 1.9438444924406 Knots
-			case 'v':
-				reply += this.mCB.getLastKnownLocation();
-				break;
-			case 'f': // we only have one device so this does nothing !
-				if (idx + 1 < str.length()) {
-					if (str.charAt(idx + 1) == '=') {
-						// COPY DEVICE NAME!
-						this.mDeviceName = "";
-						for (; idx < str.length(); idx++) {
-							this.mDeviceName += str.charAt(idx);
-						}
-					}
-				}
-				reply += this.mDeviceName;
-				break;
-			case 'i':
-				reply += ",I=" + this.mDeviceName.substring(2);
-				break;
-			case 'u':
-				reply += this.mCB.getRateOfClimb();// rate of climb
-				break;
+			case 'a': reply += mCB.getAltitude(); 				 break;
+			case 'p': reply += mCB.getPosition(); 		   		 break;
+			case 'o': reply += mCB.getNavInfo(); 		   		 break;
+			case 'd': reply += mCB.getUTCTime();		   		 break;
+			case 'v': reply += mCB.getLastKnownLocation(); 		 break;
+			case 'u': reply += mCB.getRateOfClimb();       		 break;
+			case 't': reply += mCB.getBearing(); 		   		 break;
+			case 'x': reply += mCB.sendXMode(false);       		 break;
+			case 'q': reply += mCB.printOutSatellites();   		 break;
+			case 'e': reply += "E=? ? ?"; 				  		 break;
+			case 'i': reply += ",I=" + mDeviceName.substring(2); break;
+			// * we only have one device so this does nothing !
+			// * uses old or fallback name if empty command was given!
+			case 'f':
+				if ((idx + 1 < str.length()) && (str.charAt(idx + 1) == '=')) {
+					   // COPY DEVICE NAME!
+					   mDeviceName = str.substring(idx);
+					   Log.v(getClass().toString(), "NEW DEVICE NAME SET <"+ mDeviceName +">");
+				} else Log.v(getClass().toString(), "DEVICE NAME STILL IS <"+ mDeviceName +">");
+				return mDeviceName;
 			case 'w':
 				if (idx + 1 < str.length()) {
-					switch (str.charAt(idx + 1)) {
-					case '0':
-					case '-':
-						this.mWatcherMode = false;
-						reply += ",W=0";
-						break;
-					case '1':
-					case '+':
-						if (!this.mXSend) {
-							reply += this.mCB.sendXMode(true) + Constants.COMMAND_END + Constants.REPLY_START;
-							this.mXSend = true;
-						}
-						this.mWatcherMode = true;
-						reply += ",W=1";
-						break;
-					default:
-						return null;
+					switch (test_true_false_unknown(str, idx+1,false)) {
+						case Constants.FALSE: mWatcherMode = false; reply += ",W=0"; break;
+						case Constants.TRUE:  
+							mWatcherMode = true; reply += mXSend?",W=1":
+							(mCB.sendXMode(true) + Constants.COMMAND_END+ Constants.REPLY_START);
+							mXSend = true; break;
+						case Constants.UNKNOWN: return null; // unknown command!
 					}
 					idx++;
 				} else {
-					if (this.mWatcherMode) {
-						reply += ",W=0";
-					} else {
-						reply += ",W=1";
-					}
-					this.mWatcherMode = !this.mWatcherMode;
+					reply += mWatcherMode?",W=0":",W=1"; mWatcherMode = !mWatcherMode;
 				}
 				break;
-			case 'e':
-				reply += "E=? ? ?";
-				break;
-			case 't':
-				reply += this.mCB.getBearing();
-				break;
-			case 'x':
-				reply += this.mCB.sendXMode(false);
-				break;
-			case 'q':
-				reply += this.mCB.printOutSatellites();
-				break;
 			case 'r':
-				if (idx + 1 < str.length()) {
-					switch (str.charAt(idx + 2)) {
-					case '0':
-					case '-':
-						mRawMode = false;
-						reply += ",R=0";
-						break;
-					case '1':
-					case '2':
-					case '+':
-						if (!mXSend) {
-							reply += mCB.sendXMode(true) + Constants.COMMAND_END + Constants.REPLY_START;
-							mXSend = true;
-						}
-						mRawMode = true;
-						reply += ",R=1";
-						break;
-					default:
-						return null;
+				if (idx + 2 < str.length()) {
+					switch (test_true_false_unknown(str, idx+2,true)) {
+						case Constants.FALSE: mRawMode = false; reply += ",R=0"; break;
+						case Constants.TRUE:  
+							mRawMode = true;
+							reply += mXSend ? ",R=1" : 
+								(mCB.sendXMode(true) + Constants.COMMAND_END + Constants.REPLY_START);
+							mXSend = true; break;
+						case Constants.UNKNOWN: return null; // unknown command!
 					}
 					idx++;
 				} else {
-					if (mRawMode)
+					if (mRawMode) {
 						reply += ",R=0";
-					else
+					} else {
 						reply += ",R=1";
+					}
 					mRawMode = !mRawMode;
 				}
 				break;
-			case 'a':
-				reply += this.mCB.getAltitude();
-				break;
-			default:
-				return null;
+			default: return null; /* unknown !*/ 
 			}
 		}
 		return reply;
 	}
 
+	private int test_true_false_unknown(final String str, final int i, final boolean rb) {
+		if(i < str.length() ) switch (str.charAt(i)) {
+			case '0':
+			case '-': return Constants.FALSE;
+			case '1':
+			case '2': if(!rb) return Constants.UNKNOWN;
+			case '+': return Constants.TRUE;
+		} else Log.e(getClass().toString(), "test_true_false_unknown: detected idx >= string length!");
+		return Constants.UNKNOWN;
+	}
+
 	public void requestExitAndWait() {
 		// Tell the thread to quit
-		this.mDone = true;
+		mDone = true;
 		try {
 			this.join();
 		} catch (final InterruptedException ex) {
-			Log.e(this.toString(), "requestExitAndWait() InterruptedException:");
+			Log.e(toString(), "requestExitAndWait() InterruptedException:");
 			ex.printStackTrace();
 		}
 	}
 
 	private void resetState() {
-		this.mWatcherMode = false;
-		this.mXSend = false;
+		mWatcherMode = false;
+		mXSend = false;
 	}
 
 	@Override
 	public void run() {
 		boolean fatal = false;
-		if (this.mClientSocket == null) {
-			Log.e(this.toString(), "No Client Socket found!");
+		if (mClientSocket == null) {
+			Log.e(toString(), "No Client Socket found!");
 			return;
 		}
-		while (!this.mDone && !fatal) {
+		while (!mDone && !fatal) {
 			try { // catch all fatal exceptions!
-				this.mClientSocket.setSoTimeout(Constants.SOCKET_TIMEOUT);
+				mClientSocket.setSoTimeout(Constants.SOCKET_TIMEOUT);
 
 				final BufferedReader in = new BufferedReader(
-						new InputStreamReader(this.mClientSocket
-								.getInputStream()));
+						new InputStreamReader(mClientSocket.getInputStream()));
 				final BufferedWriter out = new BufferedWriter(
-						new OutputStreamWriter(this.mClientSocket
-								.getOutputStream()));
+						new OutputStreamWriter(mClientSocket.getOutputStream()));
 				String str;
-				while (!this.mDone && this.mClientSocket.isBound()) {
+				while (!mDone && mClientSocket.isBound()) {
 					str = null;
 					try { // wait for timeout!
-						if ((!this.mWatcherMode && !this.mRawMode) || in.ready()) {
+						if (!mWatcherMode && !mRawMode || in.ready()) {
 							str = in.readLine();
 						}
 					} catch (final SocketTimeoutException e) { // catch only
-																// read
+						// read
 						// timeouts here!!
 						// Log.d(this.toString(),"input readline timeout");
-						if (!this.mWatcherMode && !this.mRawMode) {
+						if (!mWatcherMode && !mRawMode) {
 							continue;
 						}
 						str = null;
 					} catch (final SocketException e) {
 						break;
 					}
-					if (str != null)
-						Log.v("gpsd","gpsd got : "+str);
+					if (str != null) {
+						Log.v("gpsd", "gpsd got : " + str);
+					}
 					if (str == null) {
 						// String reply_str = printOutSatellites();
 						// Log.d("gspd","Watching Mode ==> Reply String: \""+reply_str+"\"");
 						String reply_str = new String();
-						if (this.mWatcherMode)
+						if (mWatcherMode) {
 							reply_str += Constants.REPLY_START
-								+ this.mCB.getNavInfo();
-						if (this.mRawMode)
-							reply_str += this.mCB.getRawInfo();
+									+ mCB.getNavInfo();
+						}
+						if (mRawMode) {
+							reply_str += mCB.getRawInfo();
+						}
 						// Log.d("gspd","Watching Mode ==> Reply String: \""+reply_str+"\"");
 						Thread.sleep(1000);
 						try {
@@ -249,17 +206,17 @@ public class EchoThread extends Thread {
 							break;
 						}// client got disconnected!!!
 					} else { // does some sleep and check for disconnect!
-						final String reply_str = this.getReplyString(str);
+						final String reply_str = getReplyString(str);
 						if (reply_str != null) {
 							// Log.d("gspd"," ==> Reply String: \""+reply_str+"\"");
 							out.append(reply_str + Constants.COMMAND_END);
 							out.flush();
 						} else {
-							Log.e(this.toString(), "Unknown Command: " + str);
+							Log.e(toString(), "Unknown Command: " + str);
 						}
 					}
 				}
-				this.resetState();
+				resetState();
 				Log.v("gspd", "Client got disconnected");
 				out.close();
 				in.close();
@@ -267,16 +224,16 @@ public class EchoThread extends Thread {
 				e.printStackTrace();
 				fatal = true;
 			}
-			if (this.mClientSocket != null) {
+			if (mClientSocket != null) {
 				try {
-					this.mClientSocket.close();
+					mClientSocket.close();
 				} catch (final IOException e) {
-					Log.e(this.toString(), "Client Socket cannot be closed!");
+					Log.e(toString(), "Client Socket cannot be closed!");
 					e.printStackTrace();
 					break;
 				}
-				Log.d(this.toString(), "Client Socket closed now!");
-				this.mClientSocket = null;
+				Log.d(toString(), "Client Socket closed now!");
+				mClientSocket = null;
 			} else {
 				fatal = true;
 			}
@@ -284,6 +241,7 @@ public class EchoThread extends Thread {
 				Log.e("gspd","Fatal Error! I exit the Thread now because of this error!");
 			}
 		}
-		Log.d(this.toString(), "Client thread exits! " + (fatal ? "with fatal error" : " successfully"));
+		Log.d(toString(), "Client thread exits! "
+				+ (fatal ? "with fatal error" : " successfully"));
 	}
 }
