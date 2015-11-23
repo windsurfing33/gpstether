@@ -1,0 +1,1 @@
+This is a simple gps forward server similar to gpsd for android devices. it is not fully implemented yet. Feel free to download it from here or android market, take a look and help me out if you like to do some development on this. it runs on default port 2947 (same port as gpsd).
